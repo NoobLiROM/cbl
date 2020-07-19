@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "AS 1"
-.TH AS 1 "2020-03-22" "binutils-2.34.50" "GNU Development Tools"
+.TH AS 1 "2020-07-12" "binutils-2.35.50" "GNU Development Tools"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -443,6 +443,7 @@ as [\fB\-a\fR[\fBcdghlns\fR][=\fIfile\fR]] [\fB\-\-alternate\fR] [\fB\-D\fR]
  [\fB\-\-[no\-]transform\fR]
  [\fB\-\-rename\-section\fR \fIoldname\fR=\fInewname\fR]
  [\fB\-\-[no\-]trampolines\fR]
+ [\fB\-\-abi\-windowed\fR|\fB\-\-abi\-call0\fR]
 .PP
 \&\fITarget Z80 options:\fR
   [\fB\-march=\fR\fI\s-1CPU\s0\fR\fI[\-EXT]\fR\fI[+EXT]\fR]
@@ -1411,6 +1412,8 @@ accept various extension mnemonics.  For example,
 \&\f(CW\*(C`movdiri\*(C'\fR,
 \&\f(CW\*(C`movdir64b\*(C'\fR,
 \&\f(CW\*(C`enqcmd\*(C'\fR,
+\&\f(CW\*(C`serialize\*(C'\fR,
+\&\f(CW\*(C`tsxldtrk\*(C'\fR,
 \&\f(CW\*(C`avx512f\*(C'\fR,
 \&\f(CW\*(C`avx512cd\*(C'\fR,
 \&\f(CW\*(C`avx512er\*(C'\fR,
@@ -1426,6 +1429,7 @@ accept various extension mnemonics.  For example,
 \&\f(CW\*(C`avx512_vbmi2\*(C'\fR,
 \&\f(CW\*(C`avx512_vnni\*(C'\fR,
 \&\f(CW\*(C`avx512_bitalg\*(C'\fR,
+\&\f(CW\*(C`avx512_vp2intersect\*(C'\fR,
 \&\f(CW\*(C`avx512_bf16\*(C'\fR,
 \&\f(CW\*(C`noavx512f\*(C'\fR,
 \&\f(CW\*(C`noavx512cd\*(C'\fR,
@@ -1445,6 +1449,14 @@ accept various extension mnemonics.  For example,
 \&\f(CW\*(C`noavx512_vp2intersect\*(C'\fR,
 \&\f(CW\*(C`noavx512_bf16\*(C'\fR,
 \&\f(CW\*(C`noenqcmd\*(C'\fR,
+\&\f(CW\*(C`noserialize\*(C'\fR,
+\&\f(CW\*(C`notsxldtrk\*(C'\fR,
+\&\f(CW\*(C`amx_int8\*(C'\fR,
+\&\f(CW\*(C`noamx_int8\*(C'\fR,
+\&\f(CW\*(C`amx_bf16\*(C'\fR,
+\&\f(CW\*(C`noamx_bf16\*(C'\fR,
+\&\f(CW\*(C`amx_tile\*(C'\fR,
+\&\f(CW\*(C`noamx_tile\*(C'\fR,
 \&\f(CW\*(C`vmx\*(C'\fR,
 \&\f(CW\*(C`vmfunc\*(C'\fR,
 \&\f(CW\*(C`smx\*(C'\fR,
@@ -1610,7 +1622,7 @@ slightly bigger.  This option only affects the handling of branch
 instructions.
 .IP "\fB\-mbig\-obj\fR" 4
 .IX Item "-mbig-obj"
-On x86\-64 \s-1PE/COFF\s0 target this option forces the use of big object file
+On \s-1PE/COFF\s0 target this option forces the use of big object file
 format, which allows more than 32768 sections.
 .IP "\fB\-momit\-lock\-prefix=\fR\fIno\fR" 4
 .IX Item "-momit-lock-prefix=no"
@@ -1701,12 +1713,14 @@ lfence, which is the default.
 .IX Item "-mlfence-before-indirect-branch=memory"
 .PD
 These options control whether the assembler should generate lfence
-after indirect near branch instructions.
+before indirect near branch instructions.
 \&\fB\-mlfence\-before\-indirect\-branch=\fR\fIall\fR will generate lfence
-after indirect near branch via register and issue a warning before
+before indirect near branch via register and issue a warning before
 indirect near branch via memory.
+It also implicitly sets \fB\-mlfence\-before\-ret=\fR\fIshl\fR when
+there's no explict \fB\-mlfence\-before\-ret=\fR.
 \&\fB\-mlfence\-before\-indirect\-branch=\fR\fIregister\fR will generate
-lfence after indirect near branch via register.
+lfence before indirect near branch via register.
 \&\fB\-mlfence\-before\-indirect\-branch=\fR\fImemory\fR will issue a
 warning before indirect near branch via memory.
 \&\fB\-mlfence\-before\-indirect\-branch=\fR\fInone\fR will not generate
@@ -1717,18 +1731,22 @@ after loading branch target register.
 .IP "\fB\-mlfence\-before\-ret=\fR\fInone\fR" 4
 .IX Item "-mlfence-before-ret=none"
 .PD 0
+.IP "\fB\-mlfence\-before\-ret=\fR\fIshl\fR" 4
+.IX Item "-mlfence-before-ret=shl"
 .IP "\fB\-mlfence\-before\-ret=\fR\fIor\fR" 4
 .IX Item "-mlfence-before-ret=or"
+.IP "\fB\-mlfence\-before\-ret=\fR\fIyes\fR" 4
+.IX Item "-mlfence-before-ret=yes"
 .IP "\fB\-mlfence\-before\-ret=\fR\fInot\fR" 4
 .IX Item "-mlfence-before-ret=not"
 .PD
 These options control whether the assembler should generate lfence
 before ret.  \fB\-mlfence\-before\-ret=\fR\fIor\fR will generate
 generate or instruction with lfence.
-\&\fB\-mlfence\-before\-ret=\fR\fInot\fR will generate not instruction
-with lfence.
-\&\fB\-mlfence\-before\-ret=\fR\fInone\fR will not generate lfence,
-which is the default.
+\&\fB\-mlfence\-before\-ret=\fR\fIshl/yes\fR will generate shl instruction
+with lfence. \fB\-mlfence\-before\-ret=\fR\fInot\fR will generate not
+instruction with lfence. \fB\-mlfence\-before\-ret=\fR\fInone\fR will not
+generate lfence, which is the default.
 .IP "\fB\-mx86\-used\-note=\fR\fIno\fR" 4
 .IX Item "-mx86-used-note=no"
 .PD 0
@@ -2565,6 +2583,9 @@ Generate code for Power8 architecture.
 .IP "\fB\-mpower9, \-mpwr9\fR" 4
 .IX Item "-mpower9, -mpwr9"
 Generate code for Power9 architecture.
+.IP "\fB\-mpower10, \-mpwr10\fR" 4
+.IX Item "-mpower10, -mpwr10"
+Generate code for Power10 architecture.
 .IP "\fB\-mcell\fR" 4
 .IX Item "-mcell"
 .PD 0
@@ -2625,6 +2646,20 @@ Don't generate position-independent code (default)
 .IP "\fB\-march=ISA\fR" 4
 .IX Item "-march=ISA"
 Select the base isa, as specified by \s-1ISA.\s0  For example \-march=rv32ima.
+If this option and the architecture attributes aren't set, then assembler
+will check the default configure setting \-\-with\-arch=ISA.
+.IP "\fB\-misa\-spec=ISAspec\fR" 4
+.IX Item "-misa-spec=ISAspec"
+Select the default isa spec version.  If the version of \s-1ISA\s0 isn't set
+by \-march, then assembler helps to set the version according to
+the default chosen spec.  If this option isn't set, then assembler will
+check the default configure setting \-\-with\-isa\-spec=ISAspec.
+.IP "\fB\-mpriv\-spec=PRIVspec\fR" 4
+.IX Item "-mpriv-spec=PRIVspec"
+Select the privileged spec version.  We can decide whether the \s-1CSR\s0 is valid or
+not according to the chosen spec.  If this option and the privilege attributes
+aren't set, then assembler will check the default configure setting
+\&\-\-with\-priv\-spec=PRIVspec.
 .IP "\fB\-mabi=ABI\fR" 4
 .IX Item "-mabi=ABI"
 Selects the \s-1ABI,\s0 which is either \*(L"ilp32\*(R" or \*(L"lp64\*(R", optionally followed
@@ -2854,6 +2889,12 @@ across a greater range of addresses.    This option should be used when jump tar
 potentially be out of range.  In the absence of such jumps this option
 does not affect code size or performance.  The default is
 \&\fB\-\-trampolines\fR.
+.IP "\fB\-\-abi\-windowed | \-\-abi\-call0\fR" 4
+.IX Item "--abi-windowed | --abi-call0"
+Choose \s-1ABI\s0 tag written to the \f(CW\*(C`.xtensa.info\*(C'\fR section.  \s-1ABI\s0 tag
+indicates \s-1ABI\s0 of the assembly code.  A warning is issued by the linker
+on an attempt to link object files with inconsistent \s-1ABI\s0 tags.
+Default \s-1ABI\s0 is chosen by the Xtensa core configuration.
 .PP
 The following options are available when as is configured for an
 Z80 processor.

@@ -7,7 +7,7 @@ OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm",
 	      "elf32-littlearm")
 OUTPUT_ARCH(arm)
 ENTRY(_start)
-SEARCH_DIR("/home/julian/tc-build/installTmp/arm-linux-gnueabi/lib");
+SEARCH_DIR("/usr/local/arm-linux-gnueabi/lib");
 SECTIONS
 {
   /* Read-only sections, merged into text segment: */
